@@ -1,0 +1,307 @@
+import RightIcon from '@mui/icons-material/ChevronRight';
+import EditIcon from '@mui/icons-material/Edit';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import { Button, Container, Grid, IconButton, TextField, Typography, Box } from '@mui/material';
+import { makeStyles } from '@mui/styles';
+import { useState, useEffect } from 'react';
+import { yupResolver } from '@hookform/resolvers/yup';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useParams } from 'react-router-dom';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import * as yup from 'yup';
+import Page from '../../../../components/Page';
+import { FormProvider, RHFTextField } from '../../../../components/hook-form';
+import { pcDetailsOfMarketTracker } from '../../../../services/pcMarketTrackerService';
+import BurnPopUp from './BurnPopUp';
+import Chart from './PriceChart';
+import DailyChart from './DailyChart';
+import TokenHoldings from './TokenHoldings';
+import LivePausePcDetails from './LivePausePcDetails';
+import { BAD_REQUEST, BAD_RESPONSE, ERROR_MSG, GET_SUCCESS, NETWORK_ERROR, ACCESS_FORBIDDEN, ACCESS_FORBIDDEN_MSG } from '../../../../constant';
+
+const validationSchema = yup.object().shape({
+});
+
+const useStyles = makeStyles((theme) => ({
+  PlayerDetailsHeading: {
+    fontWeight: 'bold',
+  },
+  headerMainGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  EditableText: { display: 'flex', width: '25%', justifyContent: 'space-between', marginTop: '1%' },
+}));
+
+const PcDetails = () => {
+
+  const { id, UserID } = useParams();
+  const navigate = useNavigate();
+  const classes = useStyles();
+  const [burnPopUp, setBurnPopUp] = useState(false);
+  const [isLoading, setLoading] = useState(false);
+  const [isError, setError] = useState(false);
+  const [isSuccess, setSuccess] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
+  const [editBuyPrice, setEditBuyPrice] = useState(false);
+  const [editSellPrice, setEditSellPrice] = useState(false);
+  const [editMaxQty, setEditMaxQty] = useState(false);
+  const [editMaxSellQty, setEditMaxSellQty] = useState(false);
+  const [editMinBuyQty, setEditMinBuyQty] = useState(false);
+  const [editMinSellQty, setEditMinSellQty] = useState(false);
+  const [isStatusDialog, setStatusDialog] = useState(false);
+  const [pcData, setPcData] = useState(null);
+
+  const initialValues = {
+
+  };
+  const handlePauseStatus = () => {
+    setStatusDialog(true);
+  }
+  const handlePlayStatus = () => {
+    setStatusDialog(true);
+  }
+  const methods = useForm({
+    mode: 'onChange',
+    resolver: yupResolver(validationSchema),
+    defaultValues: initialValues,
+  });
+
+  const { handleSubmit, setValue } = methods;
+  const onSubmit = (data) => {
+    console.log('data', data);
+  };
+
+
+  const handleBurn = () => {
+    setBurnPopUp(true);
+  };
+  const handleEditBuyPrice = () => {
+    setEditBuyPrice(true);
+  };
+  const handleEditSellPrice = () => {
+    setEditSellPrice(true);
+  };
+  const handleEditMaxQty = () => {
+    setEditMaxQty(true);
+  };
+  const handleEditMaxSellQty = () => {
+    setEditMaxSellQty(true);
+  }
+
+  const handleMinBuyQty = () => {
+    setEditMinBuyQty(true);
+  }
+  const handleMinSellQty = () => {
+    setEditMinSellQty(true);
+  }
+
+  const fetchPcMarket = async () => {
+    const res = await pcDetailsOfMarketTracker(id, UserID);
+
+    console.log('resOfMarketTracker', res);
+
+
+    if (res?.status === GET_SUCCESS) {
+      setPcData(res?.data)
+      setLoading(false)
+    }
+    if (res.code === BAD_REQUEST) {
+      setLoading(false);
+      if (res?.response?.status === ACCESS_FORBIDDEN) {
+        setAlertMsg(res?.response?.data.message || res?.response?.data || ACCESS_FORBIDDEN_MSG);
+        setError(true);
+      }
+      else {
+        setError(true);
+        setAlertMsg(res?.response?.data.message || res?.response?.data?.error || res?.response?.data || ERROR_MSG);
+      }
+    }
+    if (res.code === NETWORK_ERROR) {
+      setLoading(false);
+      setError(true);
+      setAlertMsg(res?.message || ERROR_MSG);
+    }
+    setLoading(false)
+
+
+
+  }
+
+  useEffect(() => {
+    fetchPcMarket()
+  }, []);
+
+  useEffect(() => {
+    setValue('totalSupply', pcData?.totalSupply);
+    setValue('soldLeftInPco', pcData?.soldLeftInPco);
+    setValue('pcLeftInHouse', pcData?.pcLeftInHouse);
+    setValue('buyPrice', pcData?.buyPrice);
+    setValue('sellPrice', pcData?.sellPrice);
+    setValue('buyMaxQuantityPerUser', pcData?.buyMaxQuantityPerUser);
+    setValue('buyMinQuantityPerUser', pcData?.buyMinQuantityPerUser);
+    setValue('sellMaxQuantityPerUser', pcData?.sellMaxQuantityPerUser);
+    setValue('sellMinQuantityPerUser', pcData?.sellMinQuantityPerUser);
+  }, [pcData]);
+
+  return (
+    <>
+      <Page title=" SPQ Governance">
+        <Container maxWidth="xl">
+          <Button variant="outlined" onClick={() => navigate(-1)} sx={{ mb: '1%' }}>
+            <ChevronLeftIcon />
+            Back
+          </Button>
+
+          <Grid item container >
+            <Grid item xs={12} sm={6} md={6} sx={{ display: 'flex', flexWrap: 'wrap', fontWeight: 'bold' }} >
+              Player Counter
+              <RightIcon />
+              Pc Market Tracker
+              <RightIcon />
+              {`${pcData?.id} (${pcData?.firstName} ${pcData?.lastName} - ${pcData?.abbreviation})`}
+            </Grid>
+          </Grid>
+
+          <Grid className={classes.headerMainGrid} sx={{ marginTop: '2%' }}>
+            <Grid item container spacing={5} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Grid item xs={12} sm={6} md={6} sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                <Typography>{`${pcData?.id}`}</Typography>
+                <Typography>{`${pcData?.firstName} ${pcData?.lastName}`}</Typography>
+                <Typography>{`${pcData?.abbreviation}`}</Typography>
+                <Typography>{`${pcData?.playerRole}`}</Typography>
+                <Typography>{`${pcData?.tournamentName}`}</Typography>
+                <Typography>{`${pcData?.teamCode}`}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex" justifyContent={'space-between'}>
+                <Grid sx={{ display: 'flex', alignItems: 'center' }}> <IconButton>
+
+                  {pcData ? <><PauseCircleOutlineIcon onClick={handlePauseStatus} /> <Typography style={{ color: 'green' }}>{`${pcData?.status}`}</Typography></> : <><PlayCircleOutlineIcon onClick={handlePlayStatus} /><Typography style={{ color: 'red' }}>Pause</Typography></>}</IconButton>
+                </Grid>
+                <Button variant="contained" color="primary" style={{ width: 'auto' }} onClick={handleBurn}>
+                  Burn
+                </Button>
+              </Grid>
+            </Grid>
+          </Grid>
+
+          <FormProvider methods={methods} onSubmit={handleSubmit(onSubmit)}>
+            <Grid item container spacing={2} mt={1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Total Supply</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2}>
+                <Typography alignSelf='center'>{`${pcData?.totalSupply}`}</Typography>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Sold in PCO</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2}>
+                <Typography alignSelf='center'>{`${pcData?.soldLeftInPco}`}</Typography>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>PCs Left in House</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2}>
+                <Typography alignSelf='center'>{`${pcData?.pcLeftInHouse}`}</Typography>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Buy Price (SPQ)</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editBuyPrice === false ? <Typography alignSelf='center'>{`${pcData?.buyPrice}`}</Typography> : <RHFTextField name='buyPrice' size="small" />}
+                <IconButton><EditIcon onClick={handleEditBuyPrice} /></IconButton>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={3} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Sell Price (SPQ)</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editSellPrice === false ? <Typography alignSelf='center'>{`${pcData?.sellPrice}`}</Typography> : <RHFTextField name='sellPrice' size="small" />}
+                <IconButton><EditIcon onClick={handleEditSellPrice} /></IconButton>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Max Buy Qty per User</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editMaxQty === false ? <Typography alignSelf='center'>{`${pcData?.buyMaxQuantityPerUser}`}</Typography> : <RHFTextField name='buyMaxQuantityPerUser' size="small" />}
+                <IconButton><EditIcon onClick={handleEditMaxQty} /></IconButton>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Max Sell Qty per User</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editMaxSellQty === false ? <Typography alignSelf='center'>{`${pcData?.sellMaxQuantityPerUser}`}</Typography> : <RHFTextField name='sellMaxQuantityPerUser' size="small" />}
+                <IconButton><EditIcon onClick={handleEditMaxSellQty} /></IconButton>
+              </Grid>
+            </Grid>
+            <Grid item container spacing={2} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Min Buy Qty per User</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editMinBuyQty === false ? <Typography alignSelf='center'>{`${pcData?.buyMinQuantityPerUser}`}</Typography> : <RHFTextField name='buyMinQuantityPerUser' size="small" />}
+                <IconButton><EditIcon onClick={handleMinBuyQty} /></IconButton>
+              </Grid>
+            </Grid>
+
+            <Grid item container spacing={2} mt={0.1}>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                <Typography alignSelf='center'>Min Sell Qty per User</Typography>
+              </Grid>
+              <Grid item xs={12} sm={3} md={2} display="flex">
+                {editMinSellQty === false ? <Typography alignSelf='center'>{`${pcData?.sellMinQuantityPerUser}`}</Typography> : <RHFTextField name='sellMinQuantityPerUser' size="small" />}
+                <IconButton><EditIcon onClick={handleMinSellQty} /></IconButton>
+              </Grid>
+            </Grid>
+          </FormProvider>
+        </Container>
+      </Page>
+
+      <Grid sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: '30px', width: '100%' }}>
+        <Chart />
+        <DailyChart />
+        <TokenHoldings />
+      </Grid>
+      {burnPopUp && (
+        <BurnPopUp
+          isOpen={burnPopUp}
+          setOpen={setBurnPopUp}
+          setSuccess={setSuccess}
+          setError={setError}
+          setAlertMsg={setAlertMsg}
+        />
+      )}
+      {isStatusDialog && (
+        <LivePausePcDetails
+          isOpen={isStatusDialog}
+          setOpen={setStatusDialog}
+          setSuccess={setSuccess}
+          setError={setError}
+          setAlertMsg={setAlertMsg}
+        />
+      )}
+    </>
+  );
+};
+
+export default PcDetails;
